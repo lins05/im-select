@@ -1,6 +1,17 @@
-CC=/usr/bin/clang
+CC=gcc
 NAME=im-select
-OPTS=-framework foundation -framework carbon
+MODULE=im-select-module
+LDFLAGS=-framework foundation -framework carbon
 
-all:
-	$(CC) $(OPTS) -o plugin/$(NAME) $(NAME).m
+$(NAME):
+	$(CC) $(LDFLAGS) -o $(NAME) $(NAME).m
+
+%.o: %.m
+	$(CC) $(CFLAGS) -c -o $@ $^
+
+%.so: %.o
+	$(CC) -L . -shared $(LDFLAGS) -o $@ $^ $(LDFLAGS)
+
+so: $(MODULE).so
+
+all: so
