@@ -1,8 +1,10 @@
 //
 //  im-select
 //
-//  Created by Ying Bian on 8/21/12.
-//  Copyright (c) 2012 Ying Bian. All rights reserved.
+//  Code are mainly borrowed from:
+//
+//  - https://github.com/ybian/smartim/blob/master/im-select.m
+//  - https://github.com/syohex/emacs-module-test/blob/master/module-test-core.c
 //
 
 #import <Foundation/Foundation.h>
