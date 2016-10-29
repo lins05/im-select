@@ -33,7 +33,7 @@ so we can switch to it in other modes."
   (interactive)
   (when (shoud-enable-im-select)
     (cond ((eq system-type 'darwin)
-           (setq prev-im (substring (shell-command-to-string "im-select") 0 -1))))))
+           (setq prev-im (osx-im-select))))))
 
 (defun im-use-prev ()
   "Use previous input method.
