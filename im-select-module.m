@@ -80,8 +80,10 @@ Fswitch_im(emacs_env *env, ptrdiff_t nargs, emacs_value args[], void *data)
         name = malloc(len);
         env->copy_string_contents(env, im_name, name, &len);
         if (do_switch(name) != 0) {
+            free(name);
             return env->intern(env, "nil");
         }
+        free(name);
         return env->intern(env, "t");
     }
 }
