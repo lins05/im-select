@@ -14,7 +14,7 @@
 (defvar prev-im (osx-im-select)
  "IM that I use when starting Emacs and exiting insert mode")
 
-(defun shoud-enable-im-select()
+(defun should-enable-im-select()
   (interactive)
   t)
   ;; (eq major-mode 'org-mode))
@@ -23,7 +23,7 @@
   "Switch to English input method on a Mac. im-select is a tool
 provided at http://git.io/ndA8Mw"
   (interactive)
-  (when (shoud-enable-im-select)
+  (when (should-enable-im-select)
     (cond ((eq system-type 'darwin)
            (osx-im-select default-im)))))
 
@@ -31,7 +31,7 @@ provided at http://git.io/ndA8Mw"
   "Remember the input method being used in insert mode,
 so we can switch to it in other modes."
   (interactive)
-  (when (shoud-enable-im-select)
+  (when (should-enable-im-select)
     (cond ((eq system-type 'darwin)
            (setq prev-im (osx-im-select))))))
 
@@ -39,7 +39,7 @@ so we can switch to it in other modes."
   "Use previous input method.
 If previous input method is not defined, use default method"
   (interactive)
-  (when (shoud-enable-im-select)
+  (when (should-enable-im-select)
     (cond ((eq system-type 'darwin)
            (if prev-im
                (osx-im-select prev-im)
