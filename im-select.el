@@ -16,7 +16,11 @@
 
 (defun should-enable-im-select()
   (interactive)
-  t)
+  ;; (message "current-buffer = %s, window-buffer = %s"
+  ;;          (current-buffer)
+  ;;          (window-buffer (selected-window)))
+  (eq (current-buffer)
+     (window-buffer (selected-window))))
   ;; (eq major-mode 'org-mode))
 
 (defun im-use-english ()
