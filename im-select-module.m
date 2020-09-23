@@ -61,29 +61,39 @@ static char *get_current_im() {
 static emacs_value
 Fswitch_im(emacs_env *env, ptrdiff_t nargs, emacs_value args[], void *data)
 {
-	emacs_value im_name = args[0];
-
+    // printf("<<<<===>>>>\n");
     if (nargs == 0) {
         char *current_im = get_current_im();
+        // printf("===>\n");
+        // printf("current im = %s\n", current_im);
         emacs_value retval = env->make_string(env, (const char*)current_im, strlen(current_im));
+        // printf("=>>> 0\n");
         free(current_im);
+        // printf("=>>> 1\n");
         return retval;
     } else {
+        // printf("=>>> 1\n");
         ptrdiff_t len = 0;
+        emacs_value im_name = args[0];
         env->copy_string_contents(env, im_name, NULL, &len);
+        // printf("=>>> 2\n");
 
         char *name = NULL;
         if (len == 0) {
             return env->intern(env, "nil");
         }
+        // printf("=>>> 3\n");
 
         name = malloc(len);
         env->copy_string_contents(env, im_name, name, &len);
+        // printf("now doing switch: %s!\n", name);
         if (do_switch(name) != 0) {
             free(name);
             return env->intern(env, "nil");
         }
+        // printf("=>>> 4\n");
         free(name);
+        // printf("=>>> 5\n");
         return env->intern(env, "t");
     }
 }

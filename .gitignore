@@ -8,3 +8,4 @@
 #*
 /im-select
 *.gz
+*.dSYM

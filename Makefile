@@ -1,17 +1,23 @@
 CC=gcc
 NAME=im-select
 MODULE=im-select-module
+CFLAGS=-g -O0
 LDFLAGS=-framework foundation -framework carbon
 
+all: so
+
 $(NAME):
-	$(CC) $(LDFLAGS) -o $(NAME) $(NAME).m
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $(NAME) $(NAME).m
 
 %.o: %.m
 	$(CC) $(CFLAGS) -c -o $@ $^
 
 %.so: %.o
-	$(CC) -L . -shared $(LDFLAGS) -o $@ $^ $(LDFLAGS)
+	$(CC) $(CFLAGS) -g -O0 -L . -shared $(LDFLAGS) -o $@ $^ $(LDFLAGS)
 
 so: $(MODULE).so
 
-all: so
+clean:
+	rm -fv *.o *.so *.dylib im-select
+
+.PHONY: clean so all
