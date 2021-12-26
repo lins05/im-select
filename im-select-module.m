@@ -11,6 +11,7 @@
 #import <Carbon/Carbon.h>
 
 #include <assert.h>
+#include <pthread.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -22,54 +23,72 @@
 
 int plugin_is_GPL_compatible;
 
-static int do_switch(const char *im) {
-    NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+static dispatch_queue_t q1;
 
-    int returnCode = 0;
+void create_queue() {
+    q1 = dispatch_queue_create("im-select-queue", DISPATCH_QUEUE_SERIAL);
+}
+
+static void do_switch(char *im) {
+  // It's not possible to dispatch_sync into the already-blocked main thread in
+  // module function
+  dispatch_async(dispatch_get_main_queue(), ^{
+    NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 
     NSString *imId = [NSString stringWithUTF8String:im];
-    NSDictionary *filter = [NSDictionary dictionaryWithObject:imId forKey:(NSString *)kTISPropertyInputSourceID];
-    CFArrayRef keyboards = TISCreateInputSourceList((CFDictionaryRef)filter, false);
+    free(im);
+    NSDictionary *filter = [NSDictionary
+        dictionaryWithObject:imId
+                      forKey:(NSString *)kTISPropertyInputSourceID];
+    CFArrayRef keyboards =
+        TISCreateInputSourceList((CFDictionaryRef)filter, false);
     if (keyboards) {
-        TISInputSourceRef selected = (TISInputSourceRef)CFArrayGetValueAtIndex(keyboards, 0);
-        returnCode = TISSelectInputSource(selected);
-        CFRelease(keyboards);
-    } else {
-        returnCode = -1;
+      TISInputSourceRef selected =
+          (TISInputSourceRef)CFArrayGetValueAtIndex(keyboards, 0);
+      TISSelectInputSource(selected);
+      CFRelease(keyboards);
     }
-
     [pool release];
-
-    return returnCode;
+  });
 }
 
-static char *get_current_im() {
-    char *buf;
-    NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 
-    TISInputSourceRef current = TISCopyCurrentKeyboardInputSource();
-    NSString *sourceId = (NSString *)(TISGetInputSourceProperty(current, kTISPropertyInputSourceID));
-    buf = strdup([sourceId UTF8String]);
-    // fprintf(stdout, "%s\n", [sourceId UTF8String]);
-    CFRelease(current);
+static char *prev_im = NULL;
 
-    [pool release];
-
-    return buf;
+static void save_prev_im() {
+    char layout[128];
+    memset(layout, '\0', sizeof(layout));
+    TISInputSourceRef source = TISCopyCurrentKeyboardInputSource();
+    // get input source id - kTISPropertyInputSourceID
+    // get layout name - kTISPropertyLocalizedName
+    CFStringRef layoutID = TISGetInputSourceProperty(source, kTISPropertyInputSourceID);
+    CFStringGetCString(layoutID, layout, sizeof(layout), kCFStringEncodingUTF8);
+    // printf("%s\n", layout);
+    if (prev_im) {
+        free(prev_im);
+    }
+    prev_im = strdup(layout);
 }
+
+static void get_current_im() {
+    dispatch_block_t f1 = ^{
+        save_prev_im();
+    };
+    // It's not possible to dispatch_sync into the already-blocked main thread
+    // in a module function
+    dispatch_async(dispatch_get_main_queue(), f1);
+}
+
+static const char *prev_im_placeholder = "placeholder";
 
 static emacs_value
 Fswitch_im(emacs_env *env, ptrdiff_t nargs, emacs_value args[], void *data)
 {
     // printf("<<<<===>>>>\n");
     if (nargs == 0) {
-        char *current_im = get_current_im();
-        // printf("===>\n");
-        // printf("current im = %s\n", current_im);
-        emacs_value retval = env->make_string(env, (const char*)current_im, strlen(current_im));
-        // printf("=>>> 0\n");
-        free(current_im);
-        // printf("=>>> 1\n");
+        // printf("=>>> 0.0\n");
+        get_current_im();
+        emacs_value retval = env->make_string(env, prev_im_placeholder, strlen(prev_im_placeholder));
         return retval;
     } else {
         // printf("=>>> 1\n");
@@ -86,14 +105,15 @@ Fswitch_im(emacs_env *env, ptrdiff_t nargs, emacs_value args[], void *data)
 
         name = malloc(len);
         env->copy_string_contents(env, im_name, name, &len);
-        // printf("now doing switch: %s!\n", name);
-        if (do_switch(name) != 0) {
+        if (strcmp(name, prev_im_placeholder) == 0) {
+            if (!prev_im) {
+                return env->intern(env, "nil");
+            }
             free(name);
-            return env->intern(env, "nil");
+            name = strdup(prev_im);
         }
-        // printf("=>>> 4\n");
-        free(name);
-        // printf("=>>> 5\n");
+        // printf("now doing switch: %s!\n", name);
+        do_switch(name);
         return env->intern(env, "t");
     }
 }
@@ -130,5 +150,6 @@ emacs_module_init(struct emacs_runtime *ert)
 #undef DEFUN
 
 	provide(env, "osx-im-select");
+    // create_queue();
 	return 0;
 }
